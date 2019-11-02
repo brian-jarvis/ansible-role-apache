@@ -13,6 +13,24 @@
   register: apache_ssl_certificates
   with_items: "{{ apache_vhosts_ssl }}"
 
+## clean up vhosts created by module_defaults
+- name: Capture files to delete
+  find:
+    paths: /etc/httpd/conf.d
+    file_type: file
+    excludes: 
+      - "{{ apache_vhosts_filename }}"
+  register: found_files
+  when: apache_remove_default_vhost | bool
+
+- name: Delete files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ found_files['files'] }}"
+  notify: restart apache
+  when: apache_remove_default_vhost | bool
+
 - name: Add apache vhosts configuration.
   template:
     src: "{{ apache_vhosts_template }}"
